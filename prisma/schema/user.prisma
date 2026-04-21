@@ -1,0 +1,59 @@
+model User {
+  id String @id @default(uuid())
+
+  // -----------Identity-----------
+  name            String?
+  email           String     @unique
+  password        String
+  phoneNumber     String?    @unique
+  // Settings
+  role            UserRole   @default(employee)
+  status          UserStatus @default(ACTIVE)
+  isVerified      Boolean    @default(false)
+  isOnline        Boolean    @default(false)
+  isPhoneVerified Boolean    @default(false)
+  // Activity
+  lastLoginAt     DateTime?
+  lastActiveAt    DateTime?
+
+  // Notifications & Auth
+  notifications UserNotification[]
+  refreshTokens RefreshToken[]
+  otps          UserOtp[]
+
+  // CHAT & CALL RELATIONS
+  conversationsInitiated PrivateConversation[] @relation("ConversationInitiator")
+  conversationsReceived  PrivateConversation[] @relation("ConversationReceiver")
+
+  /// All messages user has sent
+  messagesSent PrivateMessage[]
+
+  /// Message delivery/read statuses
+  messageStatuses PrivateMessageStatus[]
+
+  // profile photo relation
+  profilePhoto String?
+
+  subscription            Subscription?
+  // ------------ notification toggle -----------
+  notificationToggle      NotificationToggle?
+  CustomOfferSubscription CustomOfferSubscription[]
+  // ---------------- Timestamps --------------------
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @default(now()) @updatedAt
+
+  @@index([email, phoneNumber, name])
+  @@map("users")
+}
+
+enum UserRole {
+  admin
+  employer
+  employee
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+}

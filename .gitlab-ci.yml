@@ -1,0 +1,93 @@
+stages:
+  - lint
+  - build
+  - build-push
+  - deploy
+
+variables:
+  NODE_VERSION: "24"
+  PNPM_VERSION: "10"
+  # Disable git depth for faster clones
+  GIT_DEPTH: 1
+  # Skip unnecessary git operations
+  GIT_STRATEGY: fetch
+
+# Cache for faster builds
+cache:
+  key: "$CI_COMMIT_REF_SLUG-node"
+  paths:
+    - node_modules/
+    - .pnpm-store/
+  policy: pull-push
+
+lint:
+  stage: lint
+  image: node:${NODE_VERSION}
+  timeout: 10m
+  before_script:
+    - npm install -g pnpm@${PNPM_VERSION}
+    - pnpm config set store-dir .pnpm-store
+  script:
+    - pnpm install --frozen-lockfile
+    - echo "Starting lint and format..."
+    - timeout 600 pnpm ci:fix || (echo "ci:fix timed out after 10 minutes" && exit 1)
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+ci-check:
+  stage: build
+  image: node:${NODE_VERSION}
+  timeout: 10m
+  before_script:
+    - npm install -g pnpm@${PNPM_VERSION}
+    - pnpm config set store-dir .pnpm-store
+  script:
+    - pnpm install --frozen-lockfile
+    - echo "Starting build..."
+    - timeout 600 pnpm build || (echo "build timed out after 10 minutes" && exit 1)
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - lint
+
+build-and-push:
+  stage: build-push
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+  script:
+    - docker build -t $DOCKER_USERNAME/$PACKAGE_NAME:$PACKAGE_VERSION .
+    - docker push $DOCKER_USERNAME/$PACKAGE_NAME:$PACKAGE_VERSION
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - ci-check
+
+deploy:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client sshpass
+    - echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+  script:
+    # Copy Caddy File
+    - sshpass -p "$VPS_PASSWORD" scp -o StrictHostKeyChecking=no Caddyfile $VPS_USER@$VPS_HOST:/$VPS_USER/server/
+    # Copy Compose File
+    - sshpass -p "$VPS_PASSWORD" scp -o StrictHostKeyChecking=no compose.yaml $VPS_USER@$VPS_HOST:/$VPS_USER/server/
+    # Deploy via SSH
+    - |
+      sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST << 'EOF'
+      cd ~/server
+      sudo docker compose --profile prod pull
+      sudo docker compose --profile prod down
+      sudo docker compose --profile prod up -d
+      sudo docker system prune -f
+      EOF
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - build-and-push
