@@ -54,7 +54,7 @@ export class SocketAuthMiddleware {
         let payload: any;
         try {
           payload = jwt.verify(token, jwtSecret);
-        } catch (jwtError) {
+        } catch (jwtError: any) {
           this.logger.warn(
             `JWT verification failed: ${jwtError.message} - Socket: ${socket.id}`,
           );
@@ -97,7 +97,7 @@ export class SocketAuthMiddleware {
 
         // Allow connection to proceed
         next();
-      } catch (error) {
+      } catch (error: any) {
         this.logger.error(
           `Socket authentication error: ${error.message} - Socket: ${socket.id}`,
         );

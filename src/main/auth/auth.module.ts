@@ -1,4 +1,5 @@
 import { TwilioService } from '@/lib/twilio/twilio.service';
+import { RedisModule } from '@/lib/redis/redis.module';
 import { Module } from '@nestjs/common';
 import { UploadModule } from '../upload-s3/upload.module';
 import { AuthController } from './auth.controller';
@@ -11,7 +12,7 @@ import { AuthRegisterService } from './services/auth-register.service';
 import { AuthUpdateProfileService } from './services/auth-update-profile.service';
 
 @Module({
-  imports: [UploadModule],
+  imports: [UploadModule, RedisModule],
   controllers: [AuthController],
   providers: [
     AuthRegisterService,

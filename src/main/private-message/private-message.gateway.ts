@@ -102,7 +102,7 @@ export class PrivateChatGateway
           `Marked ${deliveredCount} messages as delivered for user ${userId}`,
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Error marking messages delivered: ${error.message}`);
     }
 
@@ -204,7 +204,7 @@ export class PrivateChatGateway
         );
 
       client.emit(PrivateChatEvents.CONVERSATION_MESSAGES, conversation);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Error loading conversation ${conversationId}:`, error);
       client.emit(PrivateChatEvents.ERROR, {
         event: PrivateChatEvents.LOAD_SINGLE_CONVERSATION,
@@ -332,7 +332,7 @@ export class PrivateChatGateway
           participant: await this.getParticipantInfo(userId),
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Error sending message from ${userId}:`, error);
       client.emit(PrivateChatEvents.ERROR, {
         event: PrivateChatEvents.SEND_MESSAGE,
@@ -383,7 +383,7 @@ export class PrivateChatGateway
       const conversations =
         await this.privateChatService.getUserConversations(userId);
       client.emit(PrivateChatEvents.CONVERSATION_LIST, conversations);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Error marking conversation as read:`, error);
       client.emit(PrivateChatEvents.ERROR, {
         event: PrivateChatEvents.MARK_CONVERSATION_READ,
@@ -435,7 +435,7 @@ export class PrivateChatGateway
             });
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Error marking message as read:`, error);
       client.emit(PrivateChatEvents.ERROR, {
         event: PrivateChatEvents.MARK_READ,

@@ -4,6 +4,7 @@ import { HandleError } from '@/core/error/handle-error.decorator';
 import { TokenPair } from '@/core/jwt/jwt.interface';
 import { PrismaService } from '@/lib/prisma/prisma.service';
 import { AuthUtilsService } from '@/lib/utils/services/auth-utils.service';
+import { UserCacheService } from '@/lib/redis/user-cache.service';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { LogoutDto, RefreshTokenDto } from '../dto/logout.dto';
 
@@ -12,6 +13,7 @@ export class AuthLogoutService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly utils: AuthUtilsService,
+    private readonly userCache: UserCacheService,
   ) {}
 
   @HandleError('Logout user failed', 'User')
@@ -23,6 +25,10 @@ export class AuthLogoutService {
     }
 
     await this.utils.revokeAllRefreshTokensForUser(userId);
+
+    // Invalidate user session and profile cache on logout
+    await this.userCache.invalidateUserSession(userId);
+    console.log(`🗑️ User session cache invalidated on logout: ${userId}`);
 
     return successResponse(null, 'Logout successful');
   }

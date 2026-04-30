@@ -2,12 +2,16 @@ import { successResponse } from '@/common/utils/response.util';
 import { AppError } from '@/core/error/handle-error.app';
 import { HandleError } from '@/core/error/handle-error.decorator';
 import { PrismaService } from '@/lib/prisma/prisma.service';
+import { UserCacheService } from '@/lib/redis/user-cache.service';
 import { Injectable } from '@nestjs/common';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 
 @Injectable()
 export class AuthUpdateProfileService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly userCache: UserCacheService,
+  ) {}
 
   @HandleError('Failed to update profile', 'User')
   async updateProfile(userId: string, dto: UpdateProfileDto) {
@@ -37,6 +41,10 @@ export class AuthUpdateProfileService {
         profilePhoto: true,
       },
     });
+
+    // Invalidate user cache after profile update
+    await this.userCache.invalidateUserProfile(userId);
+    console.log(`🗑️ Cache invalidated for user: ${userId}`);
 
     return successResponse(updatedUser, 'Profile updated successfully');
   }

@@ -23,7 +23,7 @@ export class AuthRegisterService {
       password,
       name,
       phoneNumber,
-      role = UserEnum.EMPLOYEE,
+      role = UserEnum.EMPLOYEE, 
     } = dto;
 
     // Check if user email already exists

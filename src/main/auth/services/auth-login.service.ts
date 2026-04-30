@@ -4,31 +4,49 @@ import { HandleError } from '@/core/error/handle-error.decorator';
 import { AuthMailService } from '@/lib/mail/services/auth-mail.service';
 import { PrismaService } from '@/lib/prisma/prisma.service';
 import { AuthUtilsService } from '@/lib/utils/services/auth-utils.service';
+import { UserCacheService } from '@/lib/redis/user-cache.service';
 import { Injectable } from '@nestjs/common';
 import { LoginDto } from '../dto/login.dto';
 
 @Injectable()
 export class AuthLoginService {
+  private readonly MAX_LOGIN_ATTEMPTS = 5;
+  private readonly LOCKOUT_TIME = 900; // 15 minutes in seconds
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly authMailService: AuthMailService,
     private readonly utils: AuthUtilsService,
+    private readonly userCache: UserCacheService,
   ) {}
 
   @HandleError('Login failed', 'User')
   async login(dto: LoginDto): Promise<TResponse<any>> {
     const { email, password } = dto;
 
+    // Check login attempts (rate limiting)
+    const loginAttempts = await this.userCache.getLoginAttempts(email);
+    if (loginAttempts >= this.MAX_LOGIN_ATTEMPTS) {
+      throw new AppError(
+        429,
+        `Too many login attempts. Please try again in ${this.LOCKOUT_TIME} seconds.`,
+      );
+    }
+
     const user = await this.prisma.client.user.findUnique({
       where: { email },
     });
 
     if (!user) {
+      // Increment failed attempts
+      await this.userCache.incrementLoginAttempts(email, this.LOCKOUT_TIME);
       throw new AppError(404, 'User not found');
     }
 
     const isPasswordCorrect = await this.utils.compare(password, user.password);
     if (!isPasswordCorrect) {
+      // Increment failed attempts
+      await this.userCache.incrementLoginAttempts(email, this.LOCKOUT_TIME);
       throw new AppError(400, 'Invalid password');
     }
 
@@ -38,6 +56,9 @@ export class AuthLoginService {
         user.id,
         'EMAIL_VERIFICATION',
       );
+
+      // Store OTP in Redis cache as well
+      await this.userCache.storeOTP(user.id, otp.toString(), 'EMAIL_VERIFICATION');
 
       await this.authMailService.sendVerificationCodeEmail(
         user.email,
@@ -66,9 +87,33 @@ export class AuthLoginService {
       sub: updatedUser.id,
     });
 
+    // Cache the user profile after successful login
+    await this.userCache.cacheUserProfile(updatedUser.id, {
+      id: updatedUser.id,
+      email: updatedUser.email,
+      name: updatedUser.name,
+      role: updatedUser.role,
+      profilePhoto: updatedUser.profilePhoto,
+    }, 3600); // Cache for 1 hour
+
+    // Store user session in Redis
+    await this.userCache.storeUserSession(updatedUser.id, {
+      userId: updatedUser.id,
+      email: updatedUser.email,
+      loginTime: new Date(),
+      ip: '0.0.0.0', // You can get actual IP from request context
+    }, 86400); // 24 hours
+
+    // Reset login attempts on successful login
+    await this.userCache.resetLoginAttempts(email);
+
+    console.log(`✅ User logged in successfully: ${updatedUser.email}`);
+
+    const sanitizedUser = await this.utils.sanitizeUser(updatedUser as any);
+
     return successResponse(
       {
-        user: await this.utils.sanitizeUser(updatedUser as any),
+        user: sanitizedUser,
         token,
       },
       'Logged in successfully',
