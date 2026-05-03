@@ -84,14 +84,14 @@ services:
 
   prisma-studio:
     profiles: ["dev", "prod"]
-    image: node:22-alpine
+    image: node:22-slim
     container_name: ${PACKAGE_NAME}_prisma-studio
     restart: always
     working_dir: /app
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5454/nest_template_db
     ports:
-      - "5555:5555"
+      - "5558:5555"
     volumes:
       - .:/app
       - /app/node_modules

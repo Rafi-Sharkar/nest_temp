@@ -20,14 +20,9 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:3000',
-      'https://childcareregister.com',
-      'http://72.60.114.80:3000',
-      'http://10.10.10.22:3000',
       'http://localhost:3001',
-      'http://localhost:3002',
       'http://localhost:5173',
       'http://localhost:5174',
-      'https://ai.childcareregister.com',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
