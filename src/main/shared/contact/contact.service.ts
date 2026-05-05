@@ -23,7 +23,11 @@ import {
   CustomOfferSubscriptionFilterPaginationDto,
 } from './dto/filter-pagination.dto';
 import { UserEnum } from '@/common/enum/user.enum';
-import { EVENT_TYPES } from '@/main/notifications/socket-notification/interface/event.name';
+
+const EVENT_TYPES = {
+  CONTACT_CREATE: 'contact.create',
+  CONTACT_SUBSCRIBE_CREATE: 'contact.subscribe.create',
+};
 
 @Injectable()
 export class ContactService {

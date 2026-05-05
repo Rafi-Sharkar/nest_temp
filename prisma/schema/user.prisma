@@ -21,15 +21,9 @@ model User {
   refreshTokens RefreshToken[]
   otps          UserOtp[]
 
-  // CHAT & CALL RELATIONS
-  conversationsInitiated PrivateConversation[] @relation("ConversationInitiator")
-  conversationsReceived  PrivateConversation[] @relation("ConversationReceiver")
-
-  /// All messages user has sent
-  messagesSent PrivateMessage[]
-
-  /// Message delivery/read statuses
-  messageStatuses PrivateMessageStatus[]
+  // Calling relations
+  hostedCalls   Calling[] @relation("HostedCalls")
+  receivedCalls Calling[] @relation("ReceivedCalls")
 
   // profile photo relation
   profilePhoto String?
@@ -38,6 +32,13 @@ model User {
   // ------------ notification toggle -----------
   notificationToggle      NotificationToggle?
   CustomOfferSubscription CustomOfferSubscription[]
+
+  // Chat system
+  messages        LiveMessage[]
+  chatParticipant LiveChatParticipant[]
+  createdChats    LiveChat[]            @relation("LiveChatCreator")
+  messageReads    LiveMessageRead[]
+
   // ---------------- Timestamps --------------------
   createdAt               DateTime                  @default(now())
   updatedAt               DateTime                  @default(now()) @updatedAt

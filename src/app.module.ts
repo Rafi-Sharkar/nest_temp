@@ -17,6 +17,7 @@ import { JwtStrategy } from './core/jwt/jwt.strategy';
 import { LoggerMiddleware } from './core/middleware/logger.middleware';
 import { LibModule } from './lib/lib.module';
 import { MainModule } from './main/main.module';
+import { NotificationsModule } from './main/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -90,6 +91,9 @@ import { MainModule } from './main/main.module';
     LibModule,
 
     MainModule,
+
+    NotificationsModule,
+
   ],
   controllers: [AppController],
   providers: [

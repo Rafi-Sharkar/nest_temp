@@ -3,8 +3,6 @@ import { UserEnum } from '@/common/enum/user.enum';
 import { HandleError } from '@/core/error/handle-error.decorator';
 import { MailService } from '@/lib/mail/mail.service';
 import { PrismaService } from '@/lib/prisma/prisma.service';
-import { EVENT_TYPES } from '@/main/notifications/socket-notification/interface/event.name';
-import { payment } from '@/main/notifications/socket-notification/interface/events.payload';
 import {
   Controller,
   Headers,
@@ -20,6 +18,13 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SubscriptionStatus } from '@prisma';
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
+
+// Local event type definitions
+const EVENT_TYPES = {
+  PAYMENT_CREATE: 'payment.create',
+};
+
+type payment = any; // Event payload type - flexible for various payment events
 
 @ApiTags('Webhook--------------stipe events')
 @Controller('webhook')
